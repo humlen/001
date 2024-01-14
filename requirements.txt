@@ -6,6 +6,9 @@ tqdm == 4.66.1
 # Math
 statsmodels == 0.14.1
 
+# Finance
+yfinance
+
 # Graphs
 matplotlib == 3.8.2
 seaborn == 0.13.1
