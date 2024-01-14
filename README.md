@@ -1,12 +1,29 @@
 # readme
 
-this *this* **this**
+## Purpose
+---
+the purpose of this project is to determine if we can combine
+multiple linearly correlated factors into a single formula that 
+yields a greater correlational/predictive power than the max of 
+its parts.
 
-_is_
+## Status
+---
+this is a work in progress
 
-a 
-## test
+## Changelog
+---
 
-### test
+### [Unreleased] - yyyy-mm-dd 
 
-#### test
+#### Added 
+- basic script to run a correlation analysis on the data present
+
+#### Changed
+
+#### Fixed
+
+
+## Future work
+---
+to be determined
