@@ -1,0 +1,11 @@
+# Basic
+pandas == 2.1.4
+numpy == 1.26.3
+tqdm == 4.66.1
+
+# Math
+statsmodels == 0.14.1
+
+# Graphs
+matplotlib == 3.8.2
+seaborn == 0.13.1
