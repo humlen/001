@@ -1,18 +1,15 @@
 # readme
 
 ## Purpose
----
 the purpose of this project is to determine if we can combine
 multiple linearly correlated factors into a single formula that 
 yields a greater correlational/predictive power than the max of 
 its parts.
 
 ## Status
----
 this is a work in progress
 
 ## Changelog
----
 
 ### [Unreleased] - yyyy-mm-dd 
 
@@ -25,5 +22,4 @@ this is a work in progress
 
 
 ## Future work
----
 to be determined
