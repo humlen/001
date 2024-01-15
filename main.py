@@ -8,7 +8,8 @@ import yfinance as yf
 from statsmodels import api as sm
 from tqdm import tqdm
 
-#TODO: Rewrite to Polars
+#TODO: Make timer function
+#TODO: Rewrite portions to functions and call them
 
 # Local data library
 FOLDER_PATH = (
