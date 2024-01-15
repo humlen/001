@@ -31,13 +31,37 @@ for filename in tqdm(all_files):
         df = pd.read_csv(filename, index_col=None, header=0)
         ticker = name.split("ratios_")[1]
         df["Ticker"] = ticker
+        df = df.rename(
+            columns={
+                # Ratios
+                "Return on Assets %\xa0": "ROA",
+                "Return on Capital %\xa0": "ROC",
+                "Return On Equity %\xa0": "ROE",
+                "Gross Profit Margin %\xa0": "Gross Margin",
+                "Net Income Margin %\xa0": "Net Margin",
+                "Total Debt / Equity": "Debt/Equity",
+                "Total Liabilities / Total Assets\xa0": "Liabilities/Assets",
+                "Current Ratio\xa0": "Current Ratio",
+                "Quick Ratio\xa0": "Quick Ratio",
+            }
+        )
         Ratios.append(df)
     if "multiples" in name:
         df = pd.read_csv(filename, index_col=None, header=0)
         ticker = name.split("multiples_")[1]
         df["Ticker"] = ticker
+        df.rename(
+            columns={
+                "NTM Revenues\xa0": "NTM Revenues",
+                "NTM Normalized Earnings Per Share\xa0": "NTM EPS",
+                "LTM Diluted EPS Before Extra\xa0": "LTM EPS",
+                "NTM Price / Sales (P/S)": "NTM P/S",
+                "NTM Price / Normalized Earnings (P/E)": "NTM P/E",
+                "LTM Price / Sales (P/S)": "LTM P/S",
+                "LTM Price / Diluted EPS (P/E)\xa0": "LTM P/E",
+            }
+        )
         Multiples.append(df)
-        Stocks.append(ticker)
     else:
         ticker = name
     Stocks.append(ticker)
