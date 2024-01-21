@@ -1,225 +1,222 @@
 # Fetch Libraries
 import datetime
 import glob
+import time
+from datetime import date
 
 import matplotlib.pyplot as plt
-import pandas as pd
+import polars as pl  # type: ignore
 import yfinance as yf
-from statsmodels import api as sm
+from statsmodels import api as sm  # type: ignore
 from tqdm import tqdm
 
-#TODO: Make timer function
-#TODO: Rewrite portions to functions and call them
+# Keep for debugging
+# with pl.Config(tbl_cols=df.width):
+#    print(df)
 
-# Local data library
+
+# Timer Function
+def timer(func):
+    def wrapper(*args):
+        t1 = time.time()
+        func(*args)
+        t2 = round(time.time() - t1, 2)
+        print(f"{func.__name__} ran in {t2} seconds\n")
+
+    return wrapper
+
+
+# Local libs and structs
 FOLDER_PATH = (
     r"C:\Users\eirik\Codebase\001 Compounding Linear Relationships\data\sample data"
 )
-all_files = glob.glob(FOLDER_PATH + "/*.csv")
-
-# Prepare structures
+ALL_FILES = glob.glob(FOLDER_PATH + "/*.csv")
 Ratios = []
 Multiples = []
 Stocks = []
 Prices = []
 
-# Put data in dfs
-for filename in tqdm(all_files):
-    # Determine what kind of file it is
-    name = filename.split("sample data\\")[1].split(".csv")[0]
-    if "ratios" in name:
-        df = pd.read_csv(filename, index_col=None, header=0)
-        ticker = name.split("ratios_")[1]
-        df["Ticker"] = ticker
-        df = df.rename(
-            columns={
-                # Ratios
-                "Return on Assets %\xa0": "ROA",
-                "Return on Capital %\xa0": "ROC",
-                "Return On Equity %\xa0": "ROE",
-                "Gross Profit Margin %\xa0": "Gross Margin",
-                "Net Income Margin %\xa0": "Net Margin",
-                "Total Debt / Equity": "Debt/Equity",
-                "Total Liabilities / Total Assets\xa0": "Liabilities/Assets",
-                "Current Ratio\xa0": "Current Ratio",
-                "Quick Ratio\xa0": "Quick Ratio",
-            }
-        )
-        Ratios.append(df)
-    if "multiples" in name:
-        df = pd.read_csv(filename, index_col=None, header=0)
-        ticker = name.split("multiples_")[1]
-        df["Ticker"] = ticker
-        df.rename(
-            columns={
-                "NTM Revenues\xa0": "NTM Revenues",
-                "NTM Normalized Earnings Per Share\xa0": "NTM EPS",
-                "LTM Diluted EPS Before Extra\xa0": "LTM EPS",
-                "NTM Price / Sales (P/S)": "NTM P/S",
-                "NTM Price / Normalized Earnings (P/E)": "NTM P/E",
-                "LTM Price / Sales (P/S)": "LTM P/S",
-                "LTM Price / Diluted EPS (P/E)\xa0": "LTM P/E",
-            }
-        )
-        Multiples.append(df)
-    else:
-        ticker = name
-    Stocks.append(ticker)
 
-df_ratios = pd.concat(Ratios, axis=0, ignore_index=True)
-df_multiples = pd.concat(Multiples, axis=0, ignore_index=True)
+# Populate DFs
+@timer
+def load_data(path):
+    for filename in tqdm(path):
+        # Determine the filetype
+        name = filename.split("sample data\\")[1].split(".csv")[0]
+        if "multiples" in name:
+            df = pl.read_csv(filename)
+            ticker = name.split("multiples_")[1]
+            Stocks.append(ticker)
+            df = df.with_columns(pl.lit(ticker).alias("Ticker"))
+            df = df.rename(
+                {
+                    "NTM Revenues\xa0": "NTM Revenues",
+                    "NTM Normalized Earnings Per Share\xa0": "NTM EPS",
+                    "LTM Diluted EPS Before Extra\xa0": "LTM EPS",
+                    "NTM Price / Sales (P/S)": "NTM P/S",
+                    "NTM Price / Normalized Earnings (P/E)": "NTM P/E",
+                    "LTM Price / Sales (P/S)": "LTM P/S",
+                    "LTM Price / Diluted EPS (P/E)\xa0": "LTM P/E",
+                }
+            )
+            df = df.select(
+                pl.col("Date").str.to_date("%d/%m/%y"),
+                "Ticker",
+                pl.col("NTM P/S")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .cast(pl.Float32),
+                pl.col("NTM P/E")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .str.replace(",","")
+                .cast(pl.Float32),
+                pl.col("LTM P/S")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .cast(pl.Float32),
+                pl.col("LTM P/E")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .str.replace(",","")
+                .cast(pl.Float32),
+                pl.col("NTM Revenues").cast(pl.Float32),
+                pl.col("LTM Revenues").cast(pl.Float32),
+                "NTM EPS",
+                "LTM EPS",
+            )
+            Multiples.append(df)
+        if "ratios" in name:
+            df = pl.read_csv(filename)
+            ticker = name.split("ratios_")[1]
+            Stocks.append(ticker)
+            df = df.with_columns(pl.lit(ticker).alias("Ticker"))
+            df = df.rename(
+                {
+                    "Return on Assets %\xa0": "ROA",
+                    "Return on Capital %\xa0": "ROC",
+                    "Return On Equity %\xa0": "ROE",
+                    "Gross Profit Margin %\xa0": "Gross Margin",
+                    "Net Income Margin %\xa0": "Net Margin",
+                    "Total Debt / Equity": "Debt/Equity",
+                    "Total Liabilities / Total Assets\xa0": "Liabilities/Assets",
+                    "Current Ratio\xa0": "Current Ratio",
+                    "Quick Ratio\xa0": "Quick Ratio",
+                }
+            )
+            df = df.select(
+                pl.col("Date").str.to_date("%d/%m/%y"),
+                "Ticker",
+                "ROE",
+                "ROA",
+                "ROC",
+                "Gross Margin",
+                "Net Margin",
+                "Debt/Equity",
+                "Liabilities/Assets",
+                pl.col("Current Ratio")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .cast(pl.Float32),
+                pl.col("Quick Ratio")
+                .str.replace("x", "")
+                .str.replace(r"\)", "")
+                .str.replace(r"\(", "-")
+                .cast(pl.Float32),
+            )
+            Ratios.append(df)
+        else:
+            ticker = name
 
-# Create date table
-df_dates = pd.DataFrame(
-    pd.date_range(start="2013-12-01", end=datetime.datetime.today(), freq="D"),
-    columns=["Date"],
-)
 
-# Format dfs to raw nums
-r = [c for c in df_ratios.columns if c not in ["Ticker"]]
-df_ratios[r] = (
-    df_ratios[r]
-    .replace("x", "", regex=True)
-    .replace(r"\)", "", regex=True)
-    .replace(r"\(", "-", regex=True)
-)
+load_data(ALL_FILES)
+Stocks = list(dict.fromkeys(Stocks))
+df_multiples = pl.concat(Multiples)
+df_ratios = pl.concat(Ratios)
 
-# BUG: Highlighting thinks parentheses within strings are counted
-m = [c for c in df_multiples.columns if c not in ["Ticker"]]
-df_multiples[m] = (
-    df_multiples[m]
-    .replace("x", "", regex=True)
-    .replace(r"\)", "", regex=True)
-    .replace(r"\(", "-", regex=True)
-)
 
-# Date formatting
-df_ratios["Date"] = pd.to_datetime(df_ratios["Date"], format="%d/%m/%y")
-df_ratios["Date 1Y"] = df_ratios["Date"] + datetime.timedelta(days=365)
-df_multiples["Date"] = pd.to_datetime(df_multiples["Date"], format="%d/%m/%y")
-df_multiples["Date 1Y"] = df_multiples["Date"] + datetime.timedelta(days=365)
+# Create Price Collection
+@timer
+def load_prices(list):
+    df_dates = pl.date_range(
+        date(2013, 12, 1), datetime.date.today(), eager=True
+    ).alias("Date")
+    df_dates = pl.DataFrame(df_dates)
+    for symbol in tqdm(list):
+        df_prices = yf.Ticker(symbol).history(start="2013-12-01")
+        df_prices = pl.from_pandas(df_prices, include_index=True)
+        df_prices = df_prices.with_columns(pl.lit(symbol).alias("Ticker"))
+        df_prices = df_prices.select(pl.col("Date").cast(pl.Date), "Ticker", "Close")
+        df_price = df_dates.join(df_prices, on="Date", how="left")
+        df_price = df_price.select(pl.all().forward_fill())
+        Prices.append(df_price)
 
-# Import stock prices
-for symbol in tqdm(Stocks):
-    df_price = yf.Ticker(symbol).history(start="2013-12-01")
-    df_price["Date"] = df_price.index
-    df_price = df_price.reset_index(drop=True)
-    try:
-        df_price["Date"] = df_price["Date"].dt.tz_convert(None).dt.round("D")
-    except:
-        pass
-    df_price["Ticker"] = symbol
-    df_price = df_price[["Date", "Ticker", "Close"]]
-    df_price = pd.merge(
-        df_dates,
-        df_price,
-        how="left",
-        left_on=["Date"],
-        right_on=["Date"],
-        suffixes=("", ""),
-    )
 
-    # Fill down missing values
-    df_price["Close"] = df_price["Close"].ffill()
-    df_price["Ticker"] = df_price["Ticker"].ffill()
-    Prices.append(df_price)
-
-df_prices = pd.concat(Prices, axis=0)
+load_prices(Stocks)
+df_close = pl.concat(Prices)
 
 # Merge dataframes
-df_fact = pd.merge(
-    df_ratios,
-    df_multiples,
-    how="outer",  # no particular reason why left, mby inner?
-    left_on=["Date", "Ticker"],
-    right_on=["Date", "Ticker"],
-    suffixes=("", "_RATIOS"),
+df_fact = df_ratios.join(
+    df_multiples, on=["Date", "Ticker"], how="outer_coalesce", suffix="_right"
 )
 
-df_fact = pd.merge(
-    df_fact,
-    df_prices,
-    how="left",
-    left_on=["Date", "Ticker"],
-    right_on=["Date", "Ticker"],
-    suffixes=("", ""),
-)
+df_fact = df_fact.with_columns(pl.col("Date").dt.offset_by("1y").alias("Date 1Y"))
 
-df_fact = pd.merge(
-    df_fact,
-    df_prices,
-    how="left",
+df_fact = df_fact.join(df_close, on=["Date", "Ticker"], how="left", suffix="_test")
+
+df_fact = df_fact.join(
+    df_close,
     left_on=["Date 1Y", "Ticker"],
     right_on=["Date", "Ticker"],
-    suffixes=("", "_1Y"),
+    how="left",
+    suffix="_1Y",
 )
 
-# Fix, rename and remove columns
-df_fact = df_fact.rename(
-    columns={
-        # Ratios
-        "Return on Assets %\xa0": "ROA",
-        "Return on Capital %\xa0": "ROC",
-        "Return On Equity %\xa0": "ROE",
-        "Gross Profit Margin %\xa0": "Gross Margin",
-        "Net Income Margin %\xa0": "Net Margin",
-        "Total Debt / Equity": "Debt/Equity",
-        "Total Liabilities / Total Assets\xa0": "Liabilities/Assets",
-        "Current Ratio\xa0": "Current Ratio",
-        "Quick Ratio\xa0": "Quick Ratio",
-        # Multiples
-        "NTM Revenues\xa0": "NTM Revenues",
-        "NTM Normalized Earnings Per Share\xa0": "NTM EPS",
-        "LTM Diluted EPS Before Extra\xa0": "LTM EPS",
-        "NTM Price / Sales (P/S)": "NTM P/S",
-        "NTM Price / Normalized Earnings (P/E)": "NTM P/E",
-        "LTM Price / Sales (P/S)": "LTM P/S",
-        "LTM Price / Diluted EPS (P/E)\xa0": "LTM P/E",
-    }
+# Calculate returns
+df_fact = df_fact.with_columns(
+    (pl.col("NTM Revenues") / pl.col("LTM Revenues")).alias("NTM/LTM Revenues"),
+    (pl.col("NTM EPS") / pl.col("LTM EPS")).alias("NTM/LTM EPS"),
+    ((pl.col("Close_1Y") - pl.col("Close")) / pl.col("Close")).alias("Return 1Y"),
 )
-
-df_fact["NTM/LTM Revenue"] = df_fact["NTM Revenues"] / df_fact["LTM Revenues"]
-df_fact["NTM/LTM EPS"] = df_fact["NTM EPS"] / df_fact["LTM EPS"]
-df_fact["Return 1Y"] = (df_fact["Close_1Y"] - df_fact["Close"]) / df_fact["Close"] * 100
-
-df_fact = df_fact[
-    [
-        "Date",
-        "Ticker",
-        "Return 1Y",
-        "ROE",
-        "ROA",
-        "ROC",
-        "Gross Margin",
-        "Net Margin",
-        "Debt/Equity",
-        "Liabilities/Assets",
-        "Current Ratio",
-        "Quick Ratio",
-        "NTM P/S",
-        "NTM P/E",
-        "LTM P/S",
-        "LTM P/E",
-        "NTM Revenues",
-        "LTM Revenues",
-        "NTM EPS",
-        "LTM EPS",
-        "NTM/LTM Revenue",
-        "NTM/LTM EPS",
-    ]
-]
 
 # Select metric
-METRIC = "ROE"
+METRIC = "Current Ratio"
+# ROE,ROA, ROC, Current Ratio, Quick Ratio
+# NTM P/S, NTM P/E, LTM P/S, LTM P/S 
+# Gross Margin, Net Margin, Debt/Equity, Liabilities/Assets
 
-# TODO: Scale metric
 
 # Prep data for OLS print
-df_fact = df_fact[df_fact[f"{METRIC}"] > 0]
-df_fact = df_fact[df_fact[f"{METRIC}"] < 1]
-df_fact = df_fact.dropna(subset=[f"{METRIC}", "Return 1Y"])
-x = df_fact[f"{METRIC}"]
-y = df_fact["Return 1Y"]
+df_analyze = df_fact[[f"{METRIC}", "Return 1Y"]].drop_nulls()
+metric_mean = df_analyze[f"{METRIC}"].mean()
+metric_std = df_analyze[f"{METRIC}"].std()
+metric_mask = (df_analyze[f"{METRIC}"] < metric_mean + 2 * metric_std) & (
+    df_analyze[f"{METRIC}"] > metric_mean - 2 * metric_std
+)
+df_analyze = df_analyze.filter(metric_mask)
+return_mean = df_analyze["Return 1Y"].mean()
+return_std = df_analyze["Return 1Y"].std()
+return_mask = (df_analyze["Return 1Y"] < return_mean + 2 * return_std) & (
+    df_analyze["Return 1Y"] > return_mean - 2 * return_std
+)
+df_analyze = df_analyze.filter(return_mask)
+
+
+# OLS reads numpy structs, not Polars
+x = df_analyze[f"{METRIC}"].to_numpy()
+y = df_analyze["Return 1Y"].to_numpy()
+
+print(
+    f"Return is capped between ( {return_mean - 2*return_std}, {return_mean + 2*return_std} )"
+)
+print(
+    f"{METRIC} is capped between ( {metric_mean - 2*metric_std}, {metric_mean + 2*metric_std} )"
+)
 
 # Plot data
 model = sm.OLS(y, x).fit()
@@ -236,5 +233,6 @@ ax.plot(x, y, "o", label="data")  # type: ignore
 ax.plot(x, model.fittedvalues, "r--.", label="OLS")  # type: ignore
 ax.plot(x, iv_u, "r--")  # type: ignore
 ax.plot(x, iv_l, "r--")  # type: ignore
+ax.set_ylim([-1, 1])  # type: ignore
 ax.legend(loc="best")  # type: ignore
 plt.show()
