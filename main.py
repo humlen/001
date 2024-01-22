@@ -10,10 +10,9 @@ import yfinance as yf
 from statsmodels import api as sm  # type: ignore
 from tqdm import tqdm
 
-# Keep for debugging
-# with pl.Config(tbl_cols=df.width):
-#    print(df)
+#TODO: Modify script to select metric from terminal
 
+#TODO: Consider moving functions to separate /scr folder 
 
 # Timer Function
 def timer(func):
@@ -184,11 +183,35 @@ df_fact = df_fact.with_columns(
     ((pl.col("Close_1Y") - pl.col("Close")) / pl.col("Close")).alias("Return 1Y"),
 )
 
+print("""
+Select a Metric:
+01. ROE             02. ROA             03. ROC
+04. Current Ratio   05. Quick Ratio     06. LTM P/S 
+07. NTM P/S         08. LTM P/E         09. NTM P/E 
+10. Gross Margin    11. Net Margin      12. D/E 
+13. Liab./Assets 
+""")
+
+SELECTION_NO = list(range(1,14))
+SELECTION_NAME = ['ROE', 'ROA', 'ROC', 'Current Ratio', 'Quick Ratio',
+                  'LTM P/S', 'NTM P/S', 'LTM P/E', 'NTM P/E', 'Gross Margin',
+                  'Net Margin', 'Debt/Equity', 'Liabilities/Asset']
+
+selection = input("Metric Selected: ")
+
+try:
+    index = int(selection)
+    if 1 <= index <= 13:
+        selected_metric = SELECTION_NAME[index-1]
+    else:
+        print("Input is not within the expended range")
+        quit()
+except ValueError:
+    print("Invalid Input, Please enter a valid integer")
+    quit()
+
 # Select metric
-METRIC = "Current Ratio"
-# ROE,ROA, ROC, Current Ratio, Quick Ratio
-# NTM P/S, NTM P/E, LTM P/S, LTM P/S 
-# Gross Margin, Net Margin, Debt/Equity, Liabilities/Assets
+METRIC = selected_metric
 
 
 # Prep data for OLS print
