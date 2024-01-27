@@ -10,9 +10,12 @@ import yfinance as yf
 from statsmodels import api as sm  # type: ignore
 from tqdm import tqdm
 
-#TODO: Modify script to select metric from terminal
+#TODO: Consider logging
 
-#TODO: Consider moving functions to separate /scr folder 
+#TODO: Make relative metrics
+#NTM/LTM P/E & P/S
+
+#NOTE: Consider moving functions to separate /scr folder 
 
 # Timer Function
 def timer(func):
@@ -181,6 +184,9 @@ df_fact = df_fact.with_columns(
     (pl.col("NTM Revenues") / pl.col("LTM Revenues")).alias("NTM/LTM Revenues"),
     (pl.col("NTM EPS") / pl.col("LTM EPS")).alias("NTM/LTM EPS"),
     ((pl.col("Close_1Y") - pl.col("Close")) / pl.col("Close")).alias("Return 1Y"),
+    (pl.col("NTM P/E") / pl.col("LTM P/E")).alias("NTM/LTM P/E"),
+    (pl.col("NTM P/S") / pl.col("LTM P/S")).alias("NTM/LTM P/S")
+
 )
 
 print("""
@@ -189,19 +195,19 @@ Select a Metric:
 04. Current Ratio   05. Quick Ratio     06. LTM P/S 
 07. NTM P/S         08. LTM P/E         09. NTM P/E 
 10. Gross Margin    11. Net Margin      12. D/E 
-13. Liab./Assets 
+13. Liab./Assets    14. Rel. P/E        15. Rel. P/S
 """)
 
-SELECTION_NO = list(range(1,14))
+SELECTION_NO = list(range(1,16))
 SELECTION_NAME = ['ROE', 'ROA', 'ROC', 'Current Ratio', 'Quick Ratio',
                   'LTM P/S', 'NTM P/S', 'LTM P/E', 'NTM P/E', 'Gross Margin',
-                  'Net Margin', 'Debt/Equity', 'Liabilities/Asset']
+                  'Net Margin', 'Debt/Equity', 'Liabilities/Asset', "NTM/LTM P/E", "NTM/LTM P/S"]
 
 selection = input("Metric Selected: ")
 
 try:
     index = int(selection)
-    if 1 <= index <= 13:
+    if 1 <= index <= 15:
         selected_metric = SELECTION_NAME[index-1]
     else:
         print("Input is not within the expended range")
